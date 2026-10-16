@@ -1,0 +1,34 @@
+* MiniScribe 4020 firmware 40216-12 (bitsavers 40216-12_2516.BIN), MC6803 expanded mode, EPROM at 1800-1FFF
+* f9dasm info file: f9dasm -6801 -offset 1800 -info miniscribe_40216-12.info 40216-12_2516.BIN
+label 0000 P1DDR
+label 0001 P2DDR
+label 0002 P1DATA
+label 0003 P2DATA
+label 0008 TCSR
+label 0009 TCNT
+label 000B OCR
+label 000D ICR
+label 0010 RMCR
+label 0011 TRCSR
+label 0012 RDR
+label 0013 TDR
+label 0014 RAMCR
+data 1FA6-1FFF
+word 1FF0-1FFF
+used 1EB6
+used 1E38
+used 1EE4
+label 1800 RESET
+label 1EB6 OCF_ISR
+label 1E38 ICF_ISR
+label 1EE4 SWI_ISR
+data 1BE7-1C3E
+label 0040 IO40
+label 0041 IO41
+label 0042 IO42
+label 0043 IO43
+label 0045 OUTLATCH
+label 0046 INPORT
+label 1C3F RECAL
+label 1EF2 FAULT
+label 1CEE DELAY

@@ -1,0 +1,4 @@
+cpm/out/
+cpm/.cache/
+__pycache__/
+tools/fdtest/FDTEST.COM
