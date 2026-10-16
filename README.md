@@ -82,6 +82,23 @@ back. The firmware's power-up sequence, I/O map and LED error codes are in
 - Build outputs: `python3 cpm/build.py` makes the CP/M disk image
   (`cpm/out/mcpcpm22.img`), fetching z80pack's CP/M 2.2 system files.
 
+## License
+
+- **Code** written for this project (MCPMON, HDIMAGE and the other tools,
+  the CP/M BIOS, boot sector and XM, the simulators and test suites):
+  [MIT](LICENSE).
+- **Documentation, photos, scope captures and plots**: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- **Not covered, third-party material** kept here for preservation and
+  reference, which belongs to its owners:
+  - MCP's boot ROM image and the code it contains as reproduced in its
+    disassembly (`rom/mcp_boot_f800.bin`, `rom/mcp_boot.asm`; the
+    annotations are this project's);
+  - the original system software in `disk/original-system/` (XCOMP's
+    MiniScribe software, MCP Computer Products' floppy software, and
+    FORMAT.ASM's earlier authors);
+  - the XCOMP schematic excerpts in `disk/xcomp_troubleshooting/schematic_*.png`;
+  - the OKI MSM2716AS datasheet in `docs/`.
+
 ## Tools needed
 
 `z80asm` (the GNU one, `apt install z80asm`) for the Z80 sources;
