@@ -1,7 +1,50 @@
 # MFM (ST-506) target for the EBAZ4205 ESDI emulator
 
 Notes for adding an ST-506/MFM target to the FPGA ESDI emulator (EBAZ4205
-boards), with the MCP 80/100 as its test bench. Written 2026-10-12.
+boards), with the MCP 80/100 as its test bench. Written 2026-10-12; the
+status below is from 2026-10-16. The emulator itself (gateware, firmware,
+tools) lives in its own project, not published yet.
+
+## Status (2026-10-16): working
+
+**The MCP boots the 1982 system from the emulator** (MCPMON `L`): "62K
+MSIOS (16 Meg)", `DIR` lists A:'s whole directory, dBASE II and PIP run,
+and writes persist on the emulator's SD card across a restart. The way
+there, 13 to 16 October:
+
+- **Capture first:** the board as a ready drive that records every write
+  transition (200 MHz timestamps), with MSFMT formatting one track
+  against it. That gave the gray marks and the slot timing.
+- **Record and replay:** one revolution held as 100 ns half-cells, written
+  from the controller's own bursts and played back while the gate is off.
+  MSFMT then formats and verifies a track, and MSRDT (XCOMP's random
+  read/write test, from the MCP's disk) runs thousands of passes.
+- **The format, fully:** header and data fields, the 16-bit XOR check
+  bytes, interleave and sparing ([README.md](README.md#track-format)).
+- **The controller's faults,** with the controller as the only variable:
+  a drifted gray-mark timer (fixed), a lost last check bit and
+  start-of-operation write-gate blips (both open, on the data board)
+  ([xcomp_troubleshooting.md](xcomp_troubleshooting.md)). The emulator works
+  around both: its firmware restores a lost last bit when the XOR says
+  that's the only difference, and it undoes any write burst shorter than
+  6.4 µs.
+- **The whole disk:** all 1920 tracks synthesised from the image in the
+  XCOMP's exact format (geometry from a track the controller formatted,
+  each slot's ID, data and XOR check bytes from the image; every sector
+  decodes back equal), held in DDR; a cylinder (four heads) at a time in
+  block RAM, swapped in about 20 ms on a seek; changed tracks written back
+  to the card. That track store is built from the private image, so it
+  stays private too.
+
+Cabling: the board's rev A interface works as is. Pin 10 of the XCOMP's
+20-pin data connector measured open, so the READ CLOCK driver that can't
+be tri-stated is simply held at 1 (its pin 11 leg then sits at 0 V on the
+ground line). No board change.
+
+Still to do: host mode (the next board revision drives a real drive, no
+XCOMP) for the raw read of the MiniScribe's damaged sectors.
+
+The notes below are the original plan, kept as written.
 
 ## Why
 The MCP 80/100's hard disk is a MiniScribe 4020 (ST-506/MFM, 1983) on an
@@ -37,7 +80,9 @@ the imager and test programs: [../tools/hdimage/](../tools/hdimage/README.md).
 - Not yet known (needs one raw track from the real drive, or MSFMT.ASM /
   DFORMAT.ASM from the extracted files, which are the formatter sources):
   sync bytes, address marks, ID/data CRC polynomials, gap lengths,
-  interleave, and how the spare is placed.
+  interleave, and how the spare is placed. *(All known now: MSFMT.ASM and
+  a format capture, see [README.md](README.md#track-format). DFORMAT is
+  the floppy formatter.)*
 
 ## Cabling: the pinout is on our side
 - 20-pin data cable: ST-506 pins 13/14 = MFM WRITE DATA (controller →
@@ -72,7 +117,11 @@ the imager and test programs: [../tools/hdimage/](../tools/hdimage/README.md).
 
 ## Order of work
 1. Schematic check: driver enables on 20-pin pins 2, 3, 7/8, 10/11.
+   *(Done: pin 10 open on the XCOMP, no change needed.)*
 2. Reader mode first: capture raw tracks from the real drive (cold) →
    the exact bit-level format, the sector-32 question, and the 44 sectors.
+   *(Changed: the format came from capturing the controller's writes
+   instead. The real drive waits for host mode, since the XCOMP's
+   write-gate blips rule out reading it through the controller.)*
 3. Emulator mode: play the image back in that format; run P, T, I against
-   it; then boot the MCP from it.
+   it; then boot the MCP from it. *(Done 2026-10-16.)*

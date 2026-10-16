@@ -120,10 +120,16 @@ crashes ever appear, a faster EPROM is the first thing to try.
 | Board | Marking | Notes |
 |---|---|---|
 | XS data board | XCOMP 001785-1, sticker 12776 | S-100 side: bus buffers (74LS244/373), microcode sequencer, 256-byte data buffer, compare buffer. 7805 regulator. One ribbon connector to the interface board |
-| STS interface board | XCOMP "SA1000/ST506 INTERFACE" 001790-04, sticker 12777 | Drive side: AM26LS32 receivers, data separator (74S124 VCO, one-shots, two trimmers: don't adjust), port DIP switch (CTS 206-7) at G2, crystal, 7805. Three connectors: 34-pin control, 20-pin data, inter-board cable |
+| STS interface board | XCOMP "SA1000/ST506 INTERFACE" 001790-04, sticker 12777 | Drive side: AM26LS32 receivers, AM26LS31 driver, write precompensation, gray-mark (sector) detector, data separator (74S124 VCO), three trimmers (VCO range, read-pulse shaper Q4, gray-mark timer G4), port DIP switch (CTS 206-7) at G2, crystal, 7805. Three connectors: 34-pin control, 20-pin data, inter-board cable |
 
 Power per the manual: data board +8 V 700 mA; interface board +8 V 500 mA,
 −16 V 35 mA. Sockets cleaned and chips reseated before installing.
+
+The gray-mark timer G4 had drifted and was re-centred on 2026-10-16; the
+data board still has two faults, one of which (write-gate blips) damages a
+real drive's headers: **no real drive on this controller until it's
+fixed**. Annotated board photo and the whole story:
+[../disk/xcomp_troubleshooting.md](../disk/xcomp_troubleshooting.md).
 
 ## Baud-rate DIP switch
 

@@ -1,0 +1,48 @@
+
+			=====================
+			** Back End Driver **
+			=====================
+
+
+INTRODUCTION
+------------
+
+   RMSBED is a hard disk only back end I/O driver for CP/M based systems.
+RMSBED gives the user the ability to attach hard disk to a current system
+without any alteration to the user's CBIOS. This is accomplished by moving
+the current CP/M system down 2K in memory; the back end driver is then loaded
+into the free space made available at the end of memory. Once loaded, RMSBED
+alters the user's CBIOS Jump Table to point to itself. It then arbitrates
+between calls for the floppy disk and calls for the hard disk.
+
+
+
+CONFIGURING THE DRIVER
+----------------------
+
+   Lets assume that you are currently running a 64K floppy system and you
+want to use RMSBED. Using directions supplied by Digital Research or the 
+manufacturer of your system, build a 62K CP/M system. This opens up 2K of
+RAM for the back end driver. In the program RMSBED.ASM alter the equate
+statement STRT to read  "STRT  EQU  62*1024". In the program RMSMDC.ASM alter
+the equate statement TADR  to read "TADR  EQU  62*1024". Assemble both RMSBED
+and RMSMDC. Use DDT to create a COM file called BED.COM; its done like this:
+
+	A>DDT RMSMDC.HEX	;Load DDT & RMSMDC (@ 100H) into RAM
+	-IRMSBED.HEX
+	-RC00			;Read RMSBED into RAM starting @ 400H
+	-G0			;Warm Boot CP/M
+	A>SAVE 8 BED.COM	;Create the COM file
+
+
+
+
+USING THE DRIVER
+----------------
+
+   Boot your floppy disk system as you would normally. Execute the file
+BED.COM by typing: "A>BED <CR>". This will load the driver code. The hard
+disk becomes the next drive in line; i.e., if you are currently using
+two floppy disks as drives A: & B:, the hard disk will automatically
+become drive C: (RMS-506) or drives C: & D: (RMS-512).
+

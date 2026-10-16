@@ -444,6 +444,61 @@
   that read 32 good sectors: the "sector 32" every track answers to is the
   defect slip. Drive parked (`K`) and retired to the shelf.
 
+## 2026-10-13
+
+Emulator work (EBAZ4205 board as the drive, MiniScribe on the shelf). The
+day-by-day notes are in the emulator project; the controller's side is in
+[disk/xcomp_troubleshooting.md](disk/xcomp_troubleshooting.md).
+
+- The XCOMP against the board as a capture drive: MCPMON sees READY,
+  TRACK 00, SEEK END, the seek count steps the board's cylinder. MSFMT on
+  C0 H0 wrote a clean track and then the **gray marks**: 8 intervals of
+  600 ns (illegal in MFM), first about 437 µs after index, one every 504.1 µs,
+  33 per revolution. So the XCOMP hard-sectors its own disks.
+- Record and replay (one revolution in block RAM): **MSFMT formatted and
+  verified C0 H0 on the emulator**. Learned on the way: the controller
+  always writes with 20 ns precompensation (the inhibit bit changes
+  nothing), bytes go out LSB first, and the gate rises 550–750 ns before
+  the first transition.
+- **Write-gate blips:** at the start of operations the XCOMP raises WRITE
+  GATE for 1.6 µs with a couple of transitions, and one landed on a header
+  and destroyed it. On the MiniScribe that's the most likely cause of the
+  directory headers no ID variant could find. The emulator now undoes any
+  burst under 6.4 µs.
+- Once, after a blip, the controller wrote at 3/4 rate (3.75 Mbit/s)
+  until the MCP was power-cycled. Not seen again.
+- MSRDT (XCOMP's random read/write test, from the MCP's disk, with the
+  controller base changed to 60h) runs on the emulator: 4310 passes, 4 %
+  of first reads failing, 7 % failing all retries. Photos of its error lines showed the same few
+  sectors over and over: two emulator bugs (the last bit of a field lost
+  at gate-off, the 4 half-cells after the index never played) and, as it
+  turned out, a controller fault.
+
+## 2026-10-14
+
+- MCP console logged to a PC over serial, so MSRDT's lines arrive as text.
+- Chasing a "late bit" in a few data fields: the board's pin samples and
+  an independent capture agree cycle for cycle. **The controller itself
+  writes the last bit of a data field (bit 7 of the second check byte) as
+  0** in 5–8 % of data writes, in every capture of every day.
+
+## 2026-10-15
+
+- MSRDT2 (MSRDT with a zero fill): the fill pattern isn't the trigger.
+  The lost bit depends on the delay from WRITE GATE to the first bit
+  (0.04 % at 540–545 ns, 2–7 % above): a race between two clocks on the
+  data board.
+- **The check bytes are a 16-bit XOR**, not a CRC: byte 0 = XOR of the
+  even bytes, byte 1 = F0h XOR the odd ones (data and headers). Checked on
+  19,582 fields. With that, tracks can be built from the disk image.
+- Emulator firmware repairs the lost last bit when the XOR says it's the
+  only difference; the index-straddling slot (sector 13h) fixed in the
+  recorder.
+- First reads failing about 4 % in the morning, 7–10 % in the afternoon,
+  an A/B test cleared the newest emulator build, which left the
+  controller's temperature. Cleaning the trimmers (returned to their
+  marks) changed nothing.
+
 ## 2026-10-16
 
 - The project moved to its own GitHub repository. Added: notes
@@ -451,3 +506,24 @@
   the f9dasm info file for the MiniScribe firmware, the VT52 screen model
   used to check VEZZA52 (rom/mcpmon/vt52.py). The hard disk image and the
   previous owners' files stay out.
+- **XCOMP gray-mark timer:** G4 (74LS123 on the interface board) measured
+  on the scope against the emulator's marks: ~560 ns instead of the
+  design's 500, leaving ~40 ns before marks are missed. Re-centred. MSRDT2:
+  soft reads 9.5 % → 0.2 %, misplaced writes 2.6 % → 0. Probably also why
+  the MiniScribe read worse warm. With all emulator fixes, 4878 passes:
+  0.7 % soft reads, 1 hard read.
+- **The whole disk on the emulator:** all 1920 tracks synthesised from the
+  image (the controller's own track geometry, the image's IDs and data,
+  XOR check bytes), a cylinder at a time in block RAM. **MCPMON `L` booted
+  the 1982 CP/M from it**; `DIR` lists A:'s directory. During that boot
+  and DIR, no writes at all, the XCOMP blipped WRITE GATE 5 times on the
+  directory tracks: the blips come with reads too. Rule: the MiniScribe
+  doesn't go back on this XCOMP until the blip is fixed or blocked.
+- PIP with verify onto the emulated disk, emulator power-cycled, the file
+  still there: writes persist on its SD card. dBASE II runs.
+- Added to the repository: the XCOMP troubleshooting summary with its
+  photos, scope capture, plots and schematic excerpts
+  (disk/xcomp_troubleshooting.md), the track format and the faults in
+  disk/README.md, the emulator's status, and the system's own sources from
+  the disk (disk/original-system/). They name the maker: MCP Computer
+  Products.

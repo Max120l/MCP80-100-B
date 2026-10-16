@@ -1,0 +1,70 @@
+		================
+		** SYSBLD.DOC **
+		================
+
+
+
+The following instructions are designed to help you build a
+63K CP/M system.
+
+
+STEP #1. Use MOVCPM to create a COM file with the basic CP/M
+system in it. Call it CPM63.COM.
+
+
+STEP #2. Alter RMSIOS to fit your specific hardware configuration.
+Assemble RMSIOS and produce an object file RMSIOS.HEX.
+
+
+STEP #3. Repeat STEP #2 for RMSBOOT and RMSPUT.
+
+
+STEP #4. Put all the pieces together to form a complete system.
+Save that system on your diskette. It is done thusly:
+
+	A>DDT CPM63.COM		;Load DDT and BDOS
+	DDT VERS 2.2
+	-IRMSPUT.HEX
+	-R			;Read RMSPUT into RAM at 100H
+	-IRMSBOOT.HEX
+	-R880			;Read RMSBOOT into RAM at 880H
+	-IRMSIOS.HEX
+	-R2980			;Read RMSIOS into RAM at 1F80H
+	-G0			;Warm Boot CP/M
+	A>SAVE 38 RMS63.COM	;Save the system on your diskette
+
+
+STEP #5. Assemble the disk format program RMSFMT. Use it to format
+ths disk drive.
+
+
+STEP #6. Write the system onto the systems area of the drive. It is
+done like this:
+
+	A>RMS62
+
+
+STEP #7. Boot the system and test it.
+
+
+
+
+
+NOTES
+-----
+
+1. Because of the size of RMSIOS, the system requires an additional
+   1K bytes of memory. In other words, if you have 64k of memory you'll
+   need to build a 63K system.
+
+2. For those familiar with CP/M V1.4, the SYSGEN memory layout for BOOT,
+   BDOS, & CBIOS has changed. BOOT starts 80H bytes lower in RAM because
+   the sector size on the hard disk is 256 bytes in length (as opposed to
+   a floppy disk which has a sector length of 128 bytes).  CBIOS starts
+   100H bytes higher in RAM because BDOS has grown.
+
+		BOOT	BDOS	CBIOS
+
+	1.4	900H	980H	1E80H
+	2.2	880H	980H	1F80H
+

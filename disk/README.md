@@ -150,14 +150,19 @@ short = 0, long = 1. Fatal ones repeat forever and the drive stops.
 
 The handling label on top includes the factory defect list: **cylinder
 345 head 0, 2536 bytes from index; cylinder 342 head 0, 6941 bytes from
-index** (about slots 8 and 21 of 32 at 10,416 bytes per revolution).
-Neither track has a bad sector in either image: the formatter skipped the
-defective slot and the track's 33rd sector — the "sector 32" every track
-answers to — took its place. That is what the spare is for.
+index**. At 10,416 bytes per revolution and the XCOMP's slot timing
+(first slot 437 µs after index, one every 504.1 µs; see the track format
+below) those fall in physical slots 7 and 21 (the spare, first after the
+index, is slot 0), which hold logical sectors 7 and 2.
+Neither track has a bad sector in either image. MSFMT's surface test spares
+a failing slot by writing FF FF FF FF into its header and giving its ID to
+the spare slot (the "sector 32" every unspared track answers to), so
+either that happened on these two tracks or the defects were too small to
+fail the test.
 
-Keep the drive **unplugged** until it can be imaged. It may hold the
-original OS and software, so don't boot from it first: booting can write to
-it.
+The drive is retired: imaged, and **not to be connected to this XCOMP
+again** until the controller's write-gate blips are fixed (see the
+controller section).
 
 ## The original system on the drive (first boot 2026-10-11)
 
@@ -182,9 +187,12 @@ first `DIR` of A: (read with bad directory sectors, see below):
 | CP/M | MOVCPM, DDT, SUBMIT, XSUB, ASM, LOAD, STAT, SYSGEN, DUMP (.COM and .ASM), MAC |
 | Applications and data | WordStar (WS, WSU, WSMSGS.OVR, WSOVLY1.OVR, MAILMRGE.OVR), CANCELS.CMD and MAIL.DBF (dBASE II?), FPM.BAS, FPM.REL, BILPR.REL, QSORT.COM, EXAMPLE.TXT |
 
-DFORMAT.ASM (the formatter) and the MS*.ASM files should document the
-sector header layout, the controller programming and the bad-track
-handling (MSATS: alternate tracks?) directly.
+The system's own sources, extracted from the image, are in
+[original-system/](original-system/README.md): XCOMP's MiniScribe software
+(MSIOS BIOS, MSFMT formatter, MSRDT test and the rest) and MCP's floppy
+BIOS and formatters. DFORMAT.ASM turned out to be the *floppy* formatter;
+the hard disk's is MSFMT.ASM, which settled the format, the sparing and
+the interleave.
 
 The full `DIR` runs to several hundred files. Besides the system files
 above there are more system tools (MSBT, MSFMT, FORMAT, DFORMAT.COM, and
@@ -236,10 +244,13 @@ data from C1 H2. All 13 bad sectors of those two cylinders are `02` (ID
 not found, no CRC flag) and all are on the directory tracks: 10 on C0 H2,
 2 on C0 H3, 1 on C1 H0 (in the unused part of the directory); the system
 track and the first data track read clean. The same errors the original
-system hit in `DIR`. The ID fields were written once, at the 1982 format,
-and never again; the directory's data fields are rewritten on every file
-close. HDIMAGE's `F` hunts for those sectors under every one-bit and
-one-byte variant of their ID ([tools/hdimage](../tools/hdimage/README.md)).
+system hit in `DIR`. The ID fields were written once, at the 1982 format;
+the directory's data fields are rewritten on every file close. HDIMAGE's
+`F` hunts for those sectors under every one-bit and one-byte variant of
+their ID ([tools/hdimage](../tools/hdimage/README.md)). What damaged them
+was found later, with the emulator: the XCOMP pulses WRITE GATE for 1.6 µs
+at the start of operations, reads included, and the pulse lands inside a
+header (see the controller section). The directory tracks are read most.
 
 ## The image (2026-10-12)
 
@@ -274,15 +285,23 @@ README).
 **The drive's health:** the directory tracks got worse over the day (14
 bad cold in the morning, 25 warm, 24 cold again in the evening), so they
 are not to be hammered any more: the flux-level read is the only tool
-left for them. READY dropouts (LED code 0111, speed lock lost; now and then
+left for them. The controller explains most of that (found 2026-10-13 to
+16 with the emulator, [xcomp_troubleshooting.md](xcomp_troubleshooting.md)):
+its gray-mark timer had drifted, which made reads fail more often warm,
+and its write-gate blips overwrite a few header bits wherever the head
+is, so the rise from 14 to 24 cold during the day was most likely the
+imaging itself. READY dropouts (LED code 0111, speed lock lost; now and then
 a full spin-down and restart) happen while *reading*: the spindle measures
 3601 rpm, 16.66–16.68 ms, with no drop at idle, cold or after three hours,
 and the seek tests (`T 2`–`T 5`, far more stepping than imaging) run clean.
 Suspects: the index sensor or its line picking up noise from the read
 electronics, or a supply dip under read load (the +12 V feeds the read
-preamp). Test: a few cylinders of `I` on a bench supply with a scope on
-INDEX and +12 V. Otherwise the drive is retired to the shelf; its job now
-is to be the raw-track reference for the [MFM emulator target](emulator-target.md).
+preamp). Test: reading on a bench supply with a scope on INDEX and +12 V,
+but only with a host that can't blip the write gate (not this XCOMP as it
+stands). Until then the drive is retired to the shelf, waiting for a raw
+read by the emulator board in host mode (driving the drive itself, no
+XCOMP); the MCP now runs the 1982 system from the
+[emulator](emulator-target.md) instead.
 
 **Run the files:** RunCPM (<https://github.com/MockbaTheBorg/RunCPM>) runs
 them on a PC with folders as drives; WordStar and dBASE are installed for
@@ -298,11 +317,38 @@ Not an MCP design: it's the **XCOMP ST/S** two-board ST-506 controller
 - **XS data board**, 001785-1, serial 12776: S-100 side, microprogrammed
   sequencer with writable control store, 256-byte data buffer.
 - **STS interface board**, "SA1000/ST506 INTERFACE" 001790-04, serial
-  12777: drive side, with the data separator (trimmers: **don't touch**,
-  they're the separator's calibration) and the port-address DIP switch at
-  location G2.
+  12777: drive side, with the line drivers and receivers, the crystal
+  oscillator, write precompensation, the gray-mark (sector) detector, the
+  74S124 data separator and the port-address DIP switch at location G2.
+  Three trimmers: the separator's VCO range, the read-pulse shaper (Q4)
+  and the gray-mark timer (G4). Mark a trimmer's position before touching
+  it; G4 was re-centred on 2026-10-16 (below), the other two are as found.
 - The two boards are joined by a ribbon cable; the drive's 34-pin and 20-pin
   cables plug into the interface board.
+
+> **Don't connect a real drive to this controller** until its write-gate
+> blips are fixed or blocked. At the start of many operations, reads
+> included, it raises WRITE GATE for about 1.6 µs and writes a few flux
+> transitions, which on a drive overwrites header bits under the head. The
+> emulator undoes them; a disk can't. Where to start, and how to block the
+> line for read-only work: [xcomp_troubleshooting.md](xcomp_troubleshooting.md).
+
+### Faults found (2026-10-13 to 16, with the emulator)
+
+The [EBAZ4205 emulator](emulator-target.md) recorded every bit the
+controller wrote and replayed it ideally timed, which made the controller
+the only variable. The full account, with the scope captures, plots and
+schematic excerpts, is in [xcomp_troubleshooting.md](xcomp_troubleshooting.md).
+
+| Fault | Where | Effect | State |
+|---|---|---|---|
+| Gray-mark timer G4 (74LS123) drifted to ~560 ns; design 500 ns, and a mark is missed past ~600 | Interface board, G4 and its trimmer | First reads failing 4 % cold, 7–10 % warm; 0.6–2.9 % of writes landing in the wrong slot. Probably also why the MiniScribe read worse warm | **Fixed**: re-centred to ~500 ns; soft reads 9.5 % → 0.2 %, misplaced writes 2.6 % → 0 |
+| Last bit of a data field (bit 7 of the second check byte) written as 0 | Data board: race between two clock domains, depends on the gate-on to first-bit delay | 5–8 % of data writes read back with a check error until rewritten | Open; the emulator repairs it |
+| WRITE GATE blips, ~1.6 µs, 2–5 transitions, at operation start | Data board sequencer (WG on the inter-board cable, P2-13) | Overwrites header bits: the MiniScribe's dead directory headers | **Open, dangerous for a real drive**; the emulator undoes bursts under 6.4 µs |
+| Write clock at 3/4 rate (3.75 Mbit/s) until power-cycled | Oscillator or the 74LS161 divider (suspects) | Seen once, 2026-10-13 | Watch |
+
+The data cable's pin 10 measured open on the controller side (relevant to
+the emulator's cabling).
 
 Documentation (s100computers.com):
 [product page](https://s100computers.com/Hardware%20Folder/XComp/Hard%20Disk%20Controller/XCOMP.htm),
@@ -329,7 +375,8 @@ What the boot ROM does, in these terms:
   never runs the write microcode.
 - The "4-byte target ID" is the **compare buffer**: the controller checks
   each sector header against it (cylinder, head, sector) before transferring
-  data. Byte order not yet known.
+  data. Byte order (found by HDIMAGE's probe): cylinder low, cylinder high
+  (bit 0), head, sector.
 - 61h = 41h: drive select + inhibit precompensation (the manual says keep
   bit 6 clear, but MCP's ROM sets it; harmless for reads). Restore uses 01h:
   drive select, direction out.
@@ -346,11 +393,24 @@ Port address: DIP switch at G2 on the interface board, switches 1–5 = address
 bits 7–3 (ON = 1), switch 7 must be ON, switch 6 unused. For 60h:
 1 OFF, 2 ON, 3 ON, 4 OFF, 5 OFF.
 
-### Format
+### Track format
 
-32 sectors of 256 bytes per track, separate header and data fields, each
-with sync and check characters (2-byte check on the header). For the 4020:
-480 × 4 × 32 × 256 = **15.7 MB**.
+Measured from the controller's own writes on the emulator, and confirmed by
+MSFMT.ASM ([original-system/](original-system/README.md)). Details in
+[xcomp_troubleshooting.md](xcomp_troubleshooting.md).
+
+| | |
+|---|---|
+| Encoding | MFM, 5 Mbit/s, bytes serialised LSB first |
+| Hard sectoring | **Gray marks** written by the formatter: 8 flux intervals of 600 ns (illegal in MFM, whose longest is 400 ns). First mark ~437 µs after index, then one every 504.1 µs: **33 slots** per revolution. The interface board's G4 one-shot detects them and makes the SECTOR pulse |
+| Header | zero sync, mark (data bits 1111), 4 ID bytes (cylinder low, cylinder high, head, sector), 2 check bytes |
+| Data field | zero sync, mark, 256 bytes, 2 check bytes, a short zero pad. WRITE GATE rises 550–750 ns before the first transition and drops ~60 ns after the last |
+| Check bytes | **16-bit XOR**, not a CRC: byte 0 = XOR of the even bytes, byte 1 = F0h XOR the odd bytes (the 256 data bytes, or the 4 ID bytes) |
+| Slots | Slot 0 = the spare (logical sector 32); slots 1–32 = sectors 0, 16, 13, 29, 10, 26, 7, 23, 4, 20, 1, 17, 14, 30, 11, 27, 8, 24, 5, 21, 2, 18, 15, 31, 12, 28, 9, 25, 6, 22, 3, 19 (interleave 10). Slot 32's data field straddles the index |
+| Sparing | A slot that fails MSFMT's surface test gets ID FF FF FF FF and the spare takes its ID |
+| Precompensation | Always 20 ns; the "inhibit" bit (61h bit 6) makes no difference |
+
+For the 4020: 480 × 4 × 32 × 256 = **15.7 MB**.
 
 ## Bench checks (2026-10-08, no drive connected)
 
@@ -382,11 +442,11 @@ Table B (64h = 01h → BANK1, write microcode, start D3h):
 40 41 | 3x40 | 12x6D | 63 | 4x65 | 2x67 | 49 40 | 17x50 | 5B DD 5D 50 0F
 ```
 
-The manual doesn't document the microcode word format; the schematic should.
-The shapes still fit a sector: runs of 12 for sync fields, 4 for the header
-compare, 2 for check bytes. The track format is defined by this microcode,
-so an off-the-shelf flux decoder won't know it; reading through the
-controller avoids the problem.
+Neither the manual nor the schematic documents the microcode word format
+(the schematic draws the data board as a black box). The shapes fit a
+sector: runs of 12 for sync fields, 4 for the header compare, 2 for check
+bytes. The track format this microcode produces is now known (above), but
+no off-the-shelf flux decoder knows it.
 
 ## Plan
 
@@ -394,23 +454,26 @@ Done: the drive was read through the machine's own controller with
 [HDIMAGE](../tools/hdimage/README.md), which decodes the controller's own
 format, and the files were extracted (`hdextract.py`, see above).
 
-Next: an MFM (ST-506) target for the EBAZ4205 ESDI emulator, which would
-let the MCP run the 1982 installation from the image, and whose reader
-mode is the flux-level read for the sectors the controller can't find.
-What the controller expects of a drive, the cabling and the test bench are
-in [emulator-target.md](emulator-target.md).
+Done (2026-10-16): an MFM (ST-506) target for the EBAZ4205 emulator. The
+MCP boots and runs the 1982 system from it, with the whole disk
+synthesised from the image ([emulator-target.md](emulator-target.md)).
 
-Alternative: David Gesswein's MFM reader/emulator
-(<https://pdp8online.com/mfm/>), which captures raw transitions from almost
-any ST-506 drive and can also emulate one.
+Next:
+
+- The XCOMP's data board: find the write-gate blip (scope WG on the
+  inter-board cable, P2-13, at operation start) and the lost-last-bit race.
+- A raw read of the MiniScribe for the damaged directory sectors, with the
+  emulator's next board revision in host mode (no XCOMP). Alternative:
+  David Gesswein's MFM reader/emulator (<https://pdp8online.com/mfm/>).
 
 If the drive is spun up again:
 
+- **Not on this XCOMP** (write-gate blips, above).
 - Run it cold and on a bench supply, not the machine. The 4020 pulls up
   to 4.5 A on 12 V for about 5 s at spin-up, so the supply needs to deliver
   that without current-limiting. Tie its ground to the machine's ground
   before connecting the data cables.
-- Park it with HDIMAGE's `K` before powering down.
+- Park it before powering down (HDIMAGE's `K`, or the host's equivalent).
 - Don't write to it until a raw capture exists: a low-level format would
   end the last chance at the damaged directory sectors.
 

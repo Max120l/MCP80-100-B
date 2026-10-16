@@ -19,7 +19,6 @@
 | `sa850-label.jpg` | 8" drive label: Shugart Associates Model 850, 115 V 60 Hz, serial 041504; spindle pulley and belt below |
 | `sa850-logic-board.jpg` | SA850 logic board (PCB 25140-0): Shugart 16270-1 / 16278-0 customs, Beckman 150 Ω terminator pack, option shunts, 1979 date codes |
 | `sa850-underside.jpg` | SA850 underside: spindle pulley and belt, AC motor capacitor, power connector, logic board |
-
 | `bench-2026-10-08.jpg` | On the bench the day of the first power-up with cards: cover off, drives in, power lamp lit |
 | `fdc-card.jpg` | The floppy controller card (silkscreen "FDC", 1980): FD1793 at F8h–FBh, 8216 bus drivers, the 50-pin drive connector |
 | `miniscribe-logic-board.jpg` | MiniScribe 4020 logic board (3000708-01): MC6803, the 2716 firmware EPROM at U20 (the original chip, which read all zeros), I/O latches |
@@ -28,6 +27,11 @@
 | `vt52-hdimage-probe.jpg` | HDIMAGE `P` with the known layout ("Layout OK") and the start of a full image |
 | `vt52-hdimage-badlist.jpg` | The bad-sector list at the end of the evening's full image |
 | `vt52-hdimage-spindle.jpg` | HDIMAGE `T 1` after three hours of reading: 3601 rpm, 16.66–16.68 ms, no READY drops |
+
+The XCOMP troubleshooting photos (the interface board annotated with the
+parts that matter, the scope on the gray-mark timer, MSRDT's screens) are
+with their write-up, in `disk/xcomp_troubleshooting/`:
+[disk/xcomp_troubleshooting.md](../disk/xcomp_troubleshooting.md).
 
 These are working photos; better archival shots to follow. The photos
 of directory listings from the hard disk are left out on purpose (the

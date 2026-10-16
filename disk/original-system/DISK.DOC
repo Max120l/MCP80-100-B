@@ -1,0 +1,82 @@
+
+			=========
+			** RMS **
+			=========
+
+
+
+   This is the initial release of CP/M support software for an XCOMP ST/S
+(ST/R) hard disk controller used in conjunction with a Rotating Memory
+Systems hard disk drive. The software can be configured to run with either
+the RMS-506 or the RMS-512.
+
+
+   All the software on the diskette was written using the Digital Research
+macro assembler MAC.
+
+
+The following programs are provided on the diskette:
+
+	 RMSATS -- Tests the seek logic of both the controller and
+		   the drive.
+
+	 RMSBED -- Back end driver (hard disk only).
+
+	RMSBOOT -- Used in conjunction with RMSROM to boot CPM from
+		   the hard disk.
+
+	 RMSFMT -- Used to format the hard disk. Does surface analysis &
+		   sector sparing.
+
+	 RMSGET -- COM file used to boot the system from the hard disk.
+
+	 RMSIOS -- CPM 2.2 I/O driver.
+
+	 RMSMDC -- Used to move the back end driver (RMSBED) code to its
+		   target address.
+
+	 RMSOFF -- Used to put the heads over the landing zone for shipmemt
+		   or at the end of the day before power off.
+
+	 RMSPUT -- Used to write the system onto the hard disk.
+
+	 RMSROM -- Example of ROM bootstrap for the hard disk.
+
+	 RMSRDT -- Random read/write diagnostic test.
+
+	 RMSVER -- Used to read (verify) the disk.
+
+	  XSBT --  Used to test the buffer memory of the XS data board.
+
+
+
+   Two of the support programs (RMSROM & RMSGET) do direct console I/O.
+These programs will require modification to run properly in your system.
+
+
+
+   A number of the programs report errors. Some of the error messages
+include information about the drive and controller status and the place
+(on the disk) where the error(s) occurred. Abbreviations are used and the
+the data is printed in hex. Abbreviations used are:
+
+	 DST = Drive Status
+	 CST = Controller Status
+	 CYL = Cylinder
+	  HD = Head
+	SECT = Sector
+
+
+
+   If you choose to use a set of I/O addresses other than 70H-77H
+(XCOMP standard) you'll need to change the equate statement CBASE
+in each program.
+
+
+
+   Please feel free to contact me regarding any questions that you
+may have concerning the operation of the disk drive, the controller,
+or the software.
+
+		
+

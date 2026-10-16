@@ -1,3 +1,10 @@
 *.bin binary
 *.jpg binary
 *.png binary
+*.wfm binary
+*.WFM binary
+# CP/M files kept byte-exact (CRLF, ^Z padding)
+disk/original-system/*.ASM -text
+disk/original-system/*.HEX -text
+disk/original-system/*.DOC -text
+disk/original-system/*.Z80 -text

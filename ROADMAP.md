@@ -31,8 +31,9 @@
 - [x] Read cylinder 0 with `R` (OK, and `L` boots the original CP/M)
 - [x] Find the compare-buffer byte order: cylinder low, cylinder high,
       head, sector (HDIMAGE's probe on the real drive, 2026-10-12)
-- [ ] Document the original BIOS from its own source (MSIOS1.ASM, extracted
-      from the drive) and the formatter (MSFMT.ASM, DFORMAT.ASM)
+- [ ] Document the original BIOS from its own source (MSIOS1.ASM, in
+      disk/original-system/). The formatter (MSFMT.ASM) is done: track
+      format, sparing and interleave in disk/README.md
 - [x] Stage 2: hard disk imager loaded over serial: tools/hdimage (reads
       every sector through the original controller with retries, sends the
       image by XMODEM-1K on port B to Tera Term; no PC-side script needed).
@@ -40,12 +41,24 @@
 - [x] Full HDIMAGE runs (2026-10-12): the whole drive read twice, `F` over
       the bad list, merged. 377 files on A: and 211 on B:, all complete; the
       unreadable rest is A:'s damaged directory sectors and free space
-- [ ] Optional: the drive on a bench supply, a few cylinders of `I` with a
-      scope on INDEX and +12 V, to pin down the READY dropouts (LED 0111)
-- [ ] MFM (ST-506) target for the EBAZ4205 ESDI emulator: reader mode for a
-      raw capture of the damaged sectors and the exact track format, then
-      emulation so the MCP runs the 1982 system from the image
-      ([disk/emulator-target.md](disk/emulator-target.md))
+- [ ] Optional: the drive on a bench supply with a scope on INDEX and
+      +12 V while reading, to pin down the READY dropouts (LED 0111). Not
+      through the XCOMP as it stands (write-gate blips)
+- [x] MFM (ST-506) target for the EBAZ4205 ESDI emulator: the track format
+      from the controller's own writes, then the whole disk synthesised
+      from the image. **The MCP boots and runs the 1982 system from it**
+      (2026-10-16) ([disk/emulator-target.md](disk/emulator-target.md))
+- [ ] Raw read of the MiniScribe's damaged directory sectors: the
+      emulator's next board revision in host mode, no XCOMP
+- [x] XCOMP gray-mark timer G4 drifted (~560 ns): re-centred to 500 ns,
+      read errors and misplaced writes gone (2026-10-16)
+- [ ] XCOMP data board: find and fix the 1.6 µs write-gate blips at the
+      start of operations (scope WG, P2-13), or block WRITE GATE for
+      read-only work. **No real drive on the XCOMP until then**
+- [ ] XCOMP data board: the lost last check bit (5–8 % of data writes, a
+      race between two clocks)
+- [ ] Watch for the write clock at 3/4 rate (seen once): scope 2XCLK/XCLK
+      if it recurs
 - [x] Serial port B working: null modem to the PC, now 19200 baud. VT52 is
       the console on port A
 - [ ] MCPMON 2.1: Intel HEX load from port B, so programs can be sent from
@@ -54,8 +67,9 @@
       second serial port; later the original BIOS / drives
 - [x] Extract the files: `tools/hdimage/hdextract.py` (cpmtools can't
       describe the two logical drives' layout directly)
-- [ ] The extracted system files (MS*, MCPBOOT/MCPBIOS, DFORMAT, the DOCs)
-      into this repository, checked with CRC.COM against CRCKLIST.CRC
+- [x] The extracted system files (MS*, MCPBOOT/MCPBIOS, DFORMAT, FORMAT,
+      the DOCs) into this repository: disk/original-system/. (CRCKLIST.CRC
+      only lists data files, none of these)
 - [x] Floppy controller: FD1793 registers echo, commands accepted
 - [x] 8" drive: selects (no select port needed), steps, finds track 0 after
       cleaning the ribbon connector
@@ -104,9 +118,13 @@
   monitor should run with only the CPU card installed.
 - Does the memory card have bank-select logic (the chips and header at the
   top)? Was the "128K" in the CP/M list a two-card configuration?
-- Microcode word format of the XCOMP controller (should be in the schematic).
-  Table A is 74 bytes but starts at D7h, so the buffer address must wrap or
-  the control store is larger than 256 bytes.
+- Microcode word format of the XCOMP controller (not in the schematic,
+  which draws the data board as a black box). Table A is 74 bytes but
+  starts at D7h, so the buffer address must wrap or the control store is
+  larger than 256 bytes.
+- Why the MiniScribe image had few data check errors when the controller
+  loses a last bit in 5–8 % of writes on the emulator: did the race appear
+  recently, or did the real drive's timing avoid it?
 - What triggers the MiniScribe's READY dropouts while reading, when the
   spindle is steady at idle and the seek tests run clean?
 - What is the board with three TO-3 transistors next to the floppy?

@@ -1,0 +1,72 @@
+
+		============================
+		** BRINGING UP THE SYSTEM **
+		============================
+
+
+
+
+INTRODUCTION
+------------
+
+    The following intructions should be followed when installing
+an XCOMP ST/S or ST/R controller with a Rotating Memory Systems
+RMS-506/512 hard disk drive.
+
+
+
+
+INSTALLATION
+------------
+
+1. Set the controller I/O address so that it does not conflict
+   with any other I/O in your computer. See the XCOMP RMS Users
+   Manual for proper switch setting. Be sure to set switch 7 to
+   the OFF position. This is in conflict with the manual. The
+   RMS drive has a fast step capability which is not supported
+   by a Seagate Drive (for which the manual was written).
+
+2. Change the equate statement CBASE in all programs to reflect
+   the I/O address used in Step #1. Assemble all the programs
+   using the Digital Research macro assembler MAC.
+
+3. Install the controller in your system. Do so with power off!
+
+4. Connect the short 26 pin ribbon cable between the two boards.
+
+5. Connect both the 34 & the 20 pin cables from the controller
+   to the drive. Pin 1 of both cables on the controller are 
+   connected to Pin 1 on the drive connectors. Pin 1 is denoted
+   by a triangle on the connectors and by the red wire on the
+   ribbon cable.
+
+6. Plug the power cable into the drive. Do so with power off.
+
+
+
+
+TESTING
+-------
+
+Run the following programs in sequence:
+
+1. XSBT. This will test the buffer memory of the controller. It also
+   ensures proper I/O address decoding and the ability of the host
+   processor to transfer data to/from the controller.
+
+2. RMSATS. Tests the step logic of both the controller & the drive.
+   Also ensures that the control cable (34 pin) is installed
+   correctly.
+
+3. RMSFMT. Formats the drive. This needs to be done before data can
+   be written onto the drive. Tests the ability of both the controller
+   & the drive to read & write data. Ensures that the data cable (20 pin)
+   has been installed correctly. Note that this program overwrites previous
+   data.
+
+4. RMSRDT. Random read/write test. Good test to verify that the complete
+   sub-system (including drive power supply) is working properly. Note
+   that this test destroys any previous data on the disk.
+
+5. At this point you are ready to bring up CP/M on your hard disk.
+
